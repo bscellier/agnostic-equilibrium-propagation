@@ -15,29 +15,42 @@ class Network:
 
     Attributes
     ----------
+    layers_state (list of Tensors): the state of the layers of the network
+    learning_rates (list of float32): the learning rates
     num_layers (int): the number of the layers in the network
     num_params (int): the number of parameter variables in the network
     thresholds (list of floats): list of threshold values used as convergence criterion for the layers
-    input_layer (SettableVariable): input layer of the network
+    input_layer (Layer): input layer of the network
     layers (list of Layer): list of ``hidden layers'' of the network, including the output layer
-    _params (list of Parameter): the parameters (weights and biases) of the network
-    output_layer (Layer): output layer of the network
-    target_layer (SettableVariable): target layer of the network
-    nudging_interaction (CostInteraction): connection between the output layer and the target layer
     params (list of Parameter): the parameters (weights and biases) of the network
+    control_knobs (list of ControlKnobs): the control knobs of the network
+    interactions (list of Interaction): list of all interactions of the network, except the control and cost interactions
+    control_interactions (list of ControlInteraction): list of all control interactions of the network
+    cost_interactions (list of CostInteraction): list of all cost interactions of the network
+    batch_size (int): Size of the mini-batch, i.e. number of examples from the dataset processed simultaneously
     device (str): Either 'cpu' or 'cuda'
-
+    output_layer (Layer): output layer of the network
+    target_layer (Layer): target layer of the network
     _y (Tensor): label tensor. Shape is (batch size,). Type is int.
-
-    _batch_size (int): Size of the mini-batch, i.e. number of examples from the dataset processed simultaneously
-    _device (str): Either 'cpu' or 'cuda'
 
     Methods
     -------
-    init_params(scaling_numbers, uniform)
-        Initializes and returns the parameters (weights and biases) of the network on a given device
+    add_layer(shape, min_interval, max_interval, learning_rate, bias_penalty, bias_decay)
+        Adds a layer to the network, as well as the bias of the layer, the associated control knob and the corresponding interactions
+    add_edge(idx_pre, idx_post, weight_type, gain, shape, padding, learning_rate, weight_penalty, weight_decay)
+        Adds an edge between two layers of the network
+    pack(idx_output_layer, linearized_cost)
+        Tells the network which layer will be the output layer
+    params_state()
+        Returns the current parameters (weights and biases) of the network
+    params()
+        Returns the parameter variables of the network
+    layers()
+        Returns the layers
     init_layers()
-        Initializes the state variables (the layers of the network) to zero
+        Initializes the layers of the network to zero
+    layers_shape()
+        Returns the list of shapes of the layers in the network
     predict(without_clamping):
         Returns the prediction associated to a given configuration
     energy_fn()
@@ -46,11 +59,9 @@ class Network:
         Returns the cost value (squarred error between output layer and target) of a given configuration
     error_fn(without_clamping)
         Computes the error value for the current state configuration
-    get_state()
-        Returns the current state of the network
     params_state()
         Returns the current parameter values (weights and biases) of the network
-    inference_step(step_size)
+    gradient_step(step_size)
         Runs one step of gradient descent on the augmented energy in the state space
     homeostatic_relaxation(max_iterations, adjust_control_knobs):
         Let the network relax to equilibrium with homeostatic control on the parameters
@@ -58,6 +69,8 @@ class Network:
         Let the network relax to equilibrium with clamped control knobs
     set_data(x, y, reset, use_soft_targets):
         Set input x and target y
+    set_device(self, device)
+        Set the tensors of the network on a given device
     set_nudging(nudging)
         Set the nudging value
     save(model_path)
@@ -258,12 +271,12 @@ class Network:
         return [input_shape] + [layer.shape for layer in self._layers]
 
     def init_layers(self):
-        """Initialize the state variables to zero, i.e. s=0."""
+        """Initialize the layers of the network to zero, i.e. s=0."""
 
         for layer in self._layers: layer.init_state(self._batch_size, self._device)
 
     def set_device(self, device):
-        """Set device"""
+        """Set the tensors of the network on a given device"""
 
         self._device = device
 

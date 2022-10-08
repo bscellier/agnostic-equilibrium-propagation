@@ -15,13 +15,17 @@ class FloatingVariable(ABC):
     max_interval (float32): maximum of the interval for the variable's state
     threshold (float32): Threshold value used as a criterion of convergence to equilibrium
     violation (float32): L1-norm between the variable's previous state and the new state
+    energy_fns (list of functions): list of functions returning the energy terms of the variable's interactions
+    grad_fns (list of functions): list of functions returning the energy gradients of the variable's interactions
 
     Methods
     -------
     add_interaction(interaction, linear_fn, quadratic_fn):
         adds an interaction the variable is involved in
-    compute_min():
-        Computes the variable's configuration that minimizes the global energy, given the state of other variables fixed
+    clamp(state):
+        Returns the value of the variable's state clamped between min_interval and max_interval
+    get_energy_grad():
+        Gradient of the energy wrt the variable, i.e. dE/dz, where z is the variable
     has_converged():
         Checks if the convergence criterion is satisfied
     init_state()
@@ -126,8 +130,7 @@ class FloatingVariable(ABC):
     def get_energy_grad(self):
         """Gradient of the energy wrt the variable, i.e. dE/dz, where z is the variable"""
 
-        energy_grad = sum([fn() for fn in self._grad_fns])
-        return energy_grad
+        return sum([grad_fn() for grad_fn in self._grad_fns])
 
     def clamp(self, state):
         """Returns the value of the variable's state clamped between min_interval and max_interval"""
@@ -141,7 +144,24 @@ class FloatingVariable(ABC):
 
 
 class QuadraticFloatingVariable(FloatingVariable, ABC):
-    """Abstract class for floating variables whose local energy is quadratic."""
+    """Abstract class for floating variables whose local energy is quadratic.
+
+    Attributes
+    ----------
+    _linear_coefficients (list of functions): list of functions returning the linear coefficients of the variable's interactions
+    _quadratic_coefficients (list of functions): list of functions returning the quadratic coefficients of the variable's interactions
+
+    Methods
+    -------
+    add_interaction(energy_fn, linear_fn, quadratic_fn):
+        adds an interaction the variable is involved in
+    compute_min():
+        Computes the variable's configuration that minimizes the global energy, given the state of other variables fixed
+    relax():
+        Updates the state of the variable. Computes the configuration of the variable that minimizes the energy, given the state of other variables.
+    get_energy_grad():
+        Gradient of the energy wrt the variable
+    """
 
     def __init__(self, shape, min_interval, max_interval, threshold):
         """Initializes an instance of Layer
@@ -164,7 +184,9 @@ class QuadraticFloatingVariable(FloatingVariable, ABC):
         Overrides the method of the class FloatingVariable
 
         Args:
-            interaction (Interaction): the interaction to be added
+            energy_fn (fn): energy function of the interaction added
+            linear_fn (fn): linear coef function of the interaction added
+            quadratic_fn (fn): quadratic coef function of the interaction added
         """
 
         # TODO: the method should check that the variable belongs to the interaction
@@ -196,6 +218,9 @@ class QuadraticFloatingVariable(FloatingVariable, ABC):
 
         We assume that E as a function of z is of the form E(z) = a * z^2 + b * z + c.
         Then, dE/dz = 2 a * z + b
+
+        Returns:
+            Tensor of shape variable_shape. Type is float32
         """
 
         linear_coef = sum([fn() for fn in self._linear_coefficients])
@@ -210,6 +235,11 @@ class Layer(QuadraticFloatingVariable):
     Class used to implement a layer of a network.
 
     The units of the layer are independent (i.e. not connected).
+
+    Attributes
+    ----------
+    _counter (int): the number of Layers instanciated so far
+    name (str): the layer's name (used e.g. to identify the layer in tensorboard)
     """
 
     _counter = 0

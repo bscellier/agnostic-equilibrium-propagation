@@ -9,7 +9,9 @@ class Epoch:
 
     Attributes
     ----------
-    _stats (list of Statistic): the list of statistics to compute over the dataset
+    _stats (list of Statistic): the list of all statistics to be computed over the dataset
+    _stats_auto (list of Statistic): the list of statistics that do not require any argument to compute
+    _stats_manual (list of Statistic): the list of statistics that require an argument to compute
 
     Methods
     -------
@@ -19,9 +21,9 @@ class Epoch:
         Returns the size of the dataset
     _reset()
         Sets all the statistics to zero
-    do_measurements_auto()
+    _do_measurements_auto()
         Do the measurements for each of the statistics in the 'auto' list
-    do_measurements_manual()
+    _do_measurements_manual()
         Do the measurements for each of the statistics in the 'manual' list
     """
 
@@ -84,7 +86,7 @@ class Evaluator(Epoch):
     ----------
     _network (Network): the model to evaluate
     _dataloader (Dataloader): the dataset on which to evaluate the model
-    _statistics (Statistics): used to accumulate the statistics on the test set
+    max_iterations (int): maximum number of iterations allowed to converge to equilibrium at inference
 
     Methods
     -------
@@ -98,7 +100,7 @@ class Evaluator(Epoch):
         Args:
             network (Network): the model to evaluate
             dataloader (Dataloader): the dataset on which to evaluate the model
-            statistics (Statistics): statistics to update during evaluation
+            max_iterations (int, optional): maximum number of iterations allowed to converge to equilibrium at inference. Default: 100.
         """
 
         Epoch.__init__(self)
@@ -150,13 +152,15 @@ class Trainer(Epoch):
 
     Attributes
     ----------
-    training_mode (str): either `optimistic' (Optimistic Aeqprop), `centered' (Centered Aeqprop), `pessimistic' (Pessimistic Aeqprop), or `autodiff' (Automatic Differentiation)
-    nudging (float): the nudging value used to train via Aeqprop, or the multiplicative factor of the learning rates to train via AutoDiff
+    _network (Network): the network to train
+    _dataloader (Dataloader): the dataset on which to train the network
+    _differentiator (TrainingProcedure): the method used to train the network
+    use_soft_targets (bool): if True, the "one-hot code" of y is of the form [0, ..., 0, 0.9, 0, ..., 0] instead of [0, ..., 0, 1, 0, ..., 0]
 
     Methods
     -------
     run(verbose)
-        Train the model for one epoch over the dataset
+        Train the network for one epoch over the dataset
     """
 
     def __init__(self, network, dataloader, differentiator, use_soft_targets=False):
@@ -165,10 +169,8 @@ class Trainer(Epoch):
         Args:
             network (Network): the network to train
             dataloader (Dataloader): the dataset on which to train the network
-            differentiator (Differentiator): 
-            statistics (Statistics): statistics to update during training
-            training_mode (str, optional): either Optimistic Aeqprop, Centered Aeqprop, or Pessimistic Aeqprop. Default: 'centered'
-            nudging (float, optional): the nudging value used to train via Aeqprop. Default: 0.2
+            differentiator (TrainingProcedure): 
+            use_soft_targets (bool, optional): if True, the "one-hot code" of y is of the form [0, ..., 0, 0.9, 0, ..., 0] instead of [0, ..., 0, 1, 0, ..., 0]. Default: False
         """
 
         Epoch.__init__(self)

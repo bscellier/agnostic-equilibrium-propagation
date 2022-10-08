@@ -12,10 +12,8 @@ class Parameter(QuadraticFloatingVariable, ABC):
 
     Methods
     -------
-    get_energy_grad():
-        Returns the gradient of the energy wrt the parameter, i.e. dE/dtheta
-    gradient_step(step_size):
-        One step of gradient descent wrt the energy
+    compute_min():
+        Computes the parameter value that minimizes the energy function, given the state of the layers and other parameters fixed.
     """
 
     def __init__(self, shape, min_interval=None, max_interval=None, threshold = 1e-3, device=None):
@@ -25,6 +23,7 @@ class Parameter(QuadraticFloatingVariable, ABC):
             shape (tuple of ints): Shape of the tensor used to represent the parameter. Type is float32.
             min_interval (float32, optional): minimum of the interval for the layer's state. Default: None
             max_interval (float32, optional): maximum of the interval for the layer's state. Default: None
+            threshold (float32, optional): threshold value used as a convergence criterion for the parameter. Default: 1e-3
             device (str, optional): Either 'cpu' or 'cuda'. Default: None.
         """
 

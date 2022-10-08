@@ -38,9 +38,9 @@ class Aeqprop(TrainingProcedure):
 
     Attributes
     ----------
+    network (Network): the network to train
     training_mode (str): either Optimistic Aeqprop, Centered Aeqprop, or Pessimistic Aeqprop
     nudging (float): the nudging value used to train via Aeqprop
-
     max_iterations_first_phase (int): the maximum number of iterations allowed to converge to equilibrium in the first phase of Aeqprop
     max_iterations_second_phase (int): the maximum number of iterations allowed to converge to equilibrium in the second phase of Aeqprop
     max_iterations_params (int): the maximum number of iterations allowed for the parameters to converge to equilibrium in the second phase of Aeqprop
@@ -83,7 +83,7 @@ class Aeqprop(TrainingProcedure):
 
     @nudging.setter
     def nudging(self, nudging):
-        # TODO: raise an error if nudging is not a postive float
+        # TODO: raise an error if nudging is not a positive float
 
         self._nudging = nudging
         self._set_nudgings()
@@ -171,6 +171,7 @@ class AutoDiff(TrainingProcedure):
 
     Attributes
     ----------
+    network (Network): the network to train
     lr_scaling (float): an optional scaling number for the learning rates (to compensate for the nudging beta that scales the learning rates in Aeqprop)
     param_decay (float): 
     max_iterations (int): the maximum number of iterations allowed to converge to equilibrium (with nudging=0)
@@ -187,7 +188,7 @@ class AutoDiff(TrainingProcedure):
         """Creates an instance of AutoDiff
 
         Args:
-            network (Network): the network to optimize via Aeqprop
+            network (Network): the network to train
             lr_scaling (float, optional): an optional scaling number for the learning rates. Default: 1.
             param_decay (float, optional): Default: 0.
             max_iterations (int, optional): the maximum number of iterations allowed to converge to equilibrium. Default: 100

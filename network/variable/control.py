@@ -11,6 +11,7 @@ class ControlKnob:
     ----------
     shape (tuple of int): shape of the tensor used to represent the control knob
     state (Tensor): the clamped control values. Shape is the same as the weight tensor. Type is float32.
+    param (Parameter): the parameter associated to the control knob
 
     Methods
     -------
@@ -19,6 +20,11 @@ class ControlKnob:
     """
 
     def __init__(self, param):
+        """Creates an instance of ControlKnob.
+
+        Args:
+            param (Parameter): the parameter associated to the control knob
+        """
 
         self._shape = param.shape
 
@@ -49,7 +55,7 @@ class ControlKnob:
         self._state = state
 
     def init_state(self):
-        """Initializes the control knob tensor.
+        """Initializes the control knob tensor to zero.
             
         Returns:
             Tensor of type float32. Control knob tensor.

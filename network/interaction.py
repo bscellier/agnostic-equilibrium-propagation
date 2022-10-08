@@ -7,14 +7,18 @@ import torch.nn.functional as F
 class Interaction(ABC):
     """Abstract class for interactions
 
+    An interaction between variables is defined by its energy function
+
     Methods
     -------
     energy_fn():
         Returns the interaction's energy
+    energy_grad_fns():
+        Returns the list of gradient functions wrt the variables of the interaction
     """
 
     def __init__(self, *variables):
-        """Constructor of MultiQuadraticInteraction
+        """Constructor of Interaction
 
         Args:
             variables (FloatingVariable): the variables involved in the multi-quadratic interaction
@@ -35,7 +39,11 @@ class Interaction(ABC):
         pass
 
     def energy_grad_fns(self):
-        """Returns the list of gradient functions wrt the variables"""
+        """Returns the list of gradient functions wrt the variables
+
+        Returns:
+            List of functions. Each function returns the energy gradient of the corresponding variable
+        """
 
         return [self._energy_grad(variable) for variable in self._variables]
 
@@ -46,7 +54,7 @@ class Interaction(ABC):
         Default implementation, valid for any variable and any energy function
 
         Returns:
-            Tensor of shape (batch_size, variable_shape) and type float32: the linear contribution
+            Tensor of shape (batch_size, variable_shape) and type float32: the gradient of the energy function wrt the variable
         """
 
         variable.state.requires_grad = True
@@ -117,6 +125,8 @@ class MultiQuadraticInteraction(Interaction, ABC):
 class Penalty(MultiQuadraticInteraction):
     """Class for penalty interaction terms
 
+    The energy of a penalty is of the form E = coef * ||variable||^2
+
     Attributes
     ----------
     _variable (FloatingVariable): the variable on which we apply a quadratic penalty
@@ -157,6 +167,9 @@ class Penalty(MultiQuadraticInteraction):
 class ControlInteraction(Interaction):
     """Class for control interactions
 
+    A control interaction is defined between a parameter (theta) and its corresponding control knob (u).
+    The energy term is of the form U = |u-theta|^2 / 2*eps
+
     Attributes
     ----------
     _control_knob (ControlKnob): the control knob coupled to the parameter
@@ -166,11 +179,11 @@ class ControlInteraction(Interaction):
     Methods
     -------
     energy_fn():
-        Returns the energy term of the interaction, which is U = |u-theta|^2 / eps
+        Returns the energy term of the interaction, which is U = |u-theta|^2 / 2*eps
     """
 
     def __init__(self, control_knob, param, learning_rate=1e-2):
-        """Initializes an instance of OutputConnection
+        """Initializes an instance of ControlInteraction
 
         Args:
             control_knob (ControlKnob): the control knob coupled to the parameter
@@ -227,6 +240,10 @@ class MultiLinearInteraction(MultiQuadraticInteraction, ABC):
     -------
     energy_fn():
         Returns the interaction's energy term
+    linear_fns():
+        Returns the list of linear_coef functions for each of the variables
+    quadratic_fns():
+        Returns a list of None for each of the variables
     """
 
     def __init__(self, *variables):
@@ -270,6 +287,8 @@ class MultiLinearInteraction(MultiQuadraticInteraction, ABC):
 class BiasInteraction(MultiLinearInteraction):
     """Interaction of the Bias
 
+    A bias interaction is defined between a layer and its corresponding bias variable
+
     Attributes
     ----------
     _layer (Layer): the layer involved in the interaction
@@ -282,7 +301,7 @@ class BiasInteraction(MultiLinearInteraction):
     """
 
     def __init__(self, layer, bias):
-        """Initializes an instance of BiasConnection
+        """Initializes an instance of BiasInteraction
 
         Args:
             layer (Layer): the layer involved in the interaction
@@ -331,11 +350,13 @@ class BiasInteraction(MultiLinearInteraction):
 class DenseInteraction(MultiLinearInteraction):
     """Dense ('fully connected') interaction between two layers
 
+    A dense interaction is defined between three variables: two adjacent layers, and the corresponding weight tensor between the two.
+
     Attributes
     ----------
-    layer_pre (Layer): pre-synaptic layer. Tensor of shape (batch_size, layer_shape). Type is float32.
-    layer_post (Layer): post-synaptic layer. Tensor of shape (batch_size, layer_shape). Type is float32.
-    weight (Parameter)
+    layer_pre (Layer): pre-synaptic layer. Tensor of shape (batch_size, layer_pre_shape). Type is float32.
+    layer_post (Layer): post-synaptic layer. Tensor of shape (batch_size, layer_post_shape). Type is float32.
+    weight (Parameter): weight tensor between layer_pre and layer_post. Tensor of shape (layer_pre_shape, layer_post_shape). Type is float32.
 
     Methods
     -------
@@ -346,7 +367,7 @@ class DenseInteraction(MultiLinearInteraction):
     # TODO: batch_mean does not seem to converge
 
     def __init__(self, layer_pre, layer_post, dense_weight, batch_mean=False):
-        """Initializes an instance of DenseConnection
+        """Initializes an instance of DenseInteraction
 
         Args:
             layer_pre (Layer): pre-synaptic layer
@@ -437,15 +458,31 @@ class DenseInteraction(MultiLinearInteraction):
 
 
 class ConvAvgPoolInteraction(MultiLinearInteraction):
-    """Convolutional weights between two layers, with 2*2 average (or `mean') pooling."""
+    """Convolutional interaction between two layers, with 2*2 average (or `mean') pooling.
+
+    A convolutional interaction with average pooling is defined between three variables: two adjacent layers, and the corresponding convolutional weight tensor between the two.
+
+    Attributes
+    ----------
+    layer_pre (Layer): pre-synaptic layer. Tensor of shape (batch_size, layer_pre_shape). Type is float32.
+    layer_post (Layer): post-synaptic layer. Tensor of shape (batch_size, layer_post_shape). Type is float32.
+    weight (Parameter): convolutional weight tensor between layer_pre and layer_post. Type is float32.
+    padding (int): padding of the convolution.
+
+    Methods
+    -------
+    energy_fn():
+        Returns the interaction's energy term
+    """
 
     def __init__(self, layer_pre, layer_post, conv_weight, padding=0):
-        """Initializes an instance of DenseConnection
+        """Initializes an instance of ConvAvgPoolInteraction
 
         Args:
             layer_pre (Layer): pre-synaptic layer. Tensor of shape (batch_size, layer_shape). Type is float32.
             layer_post (Layer): post-synaptic layer. Tensor of shape (batch_size, layer_shape). Type is float32.
-            conv_weight (ConvWeight): convolutional weights between layer_pre and layer_post
+            conv_weight (ConvWeight): convolutional weights between layer_pre and layer_post. Type is float32.
+            padding (int, optional): padding of the convolution. Default: 0
         """
 
         self._layer_pre = layer_pre

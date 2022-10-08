@@ -103,9 +103,11 @@ class SquaredError(CostInteraction):
         return 0.5 * ((output - target) ** 2).sum(dim=1)  # Vector of shape (batch_size,)
 
     def linear_fns(self):
+        """Returns the linear_coef function for the output layer"""
         return [self._linear_coef_output]
 
     def quadratic_fns(self):
+        """Returns the quadratic_coef function for the output layer"""
         return [self._quadratic_coef_output]
 
     def _linear_coef_output(self):
@@ -209,9 +211,11 @@ class LinearizedError(CostInteraction):
         else: return nudging * ((free_state - target) * (output - 0.5 * free_state - 0.5 * target)).sum(dim=1)
 
     def linear_fns(self):
+        """Returns the linear_coef function for the output layer"""
         return [self._linear_coef_output]
 
     def quadratic_fns(self):
+        """Returns the quadratic_coef function for the output layer"""
         return [None]
 
     def _linear_coef_output(self):
@@ -265,9 +269,11 @@ class PenaltyCost(CostInteraction):
         return (self._penalty + self._nudging * self._decay) * (self._variable.state ** 2).sum()
 
     def linear_fns(self):
+        """Returns the linear_coef function for the variable"""
         return [None]
 
     def quadratic_fns(self):
+        """Returns the quadratic_coef function for the variable"""
         return [self._quadratic_coef]
 
     def _quadratic_coef(self):

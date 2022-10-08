@@ -19,8 +19,9 @@ class Monitor:
     _trainer (Trainer): used to train the network on the training set
     _evaluator (Evaluator): used to evaluate the network on the test set
     _path (str): the directory where to save the model and the characteristics of the training process
-
-    TODO: add the series
+    _series (list of TimeSeries): the time series of statistics that are monitored during training
+    _series_layer_changes (list of TimeSeries): the time series of layer_changes (computed so as to adjust the threshold values)
+    _test_error_curve (TimeSeries): the test error curve
 
     Methods
     -------
@@ -115,9 +116,6 @@ class Monitor:
     def save_series(self):
         """Saves the time series (`training curves')"""
 
-        model_path = self._path + '/model.pt'
-        self._network.save(model_path)
-
         time_series_path = self._path + '/time_series.pkl'
         with open(time_series_path, 'wb') as handle:
             dictionary = {series.writer_name: series.get_series() for series in self._series if series.writer_name}
@@ -184,7 +182,7 @@ class Monitor:
         """Add the statistics to the summary writter to monitor with tensorboard
 
         Args:
-            writer (SummaryWritter): tensorbaord summary writter to update
+            writer (SummaryWritter): tensorboard summary writter to update
             epoch (int): epoch of training where the statistics have been recorded
         """
 

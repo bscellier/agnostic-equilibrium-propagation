@@ -8,7 +8,7 @@ import torch
 from training.epoch import Evaluator
 from training.statistics import NumIterationsStat, ErrorFinder
 import gui.utils
-from datasets import MyDataset
+from datasets import IndexedDataset
 
 
 class GUI(Tk):
@@ -66,7 +66,7 @@ class GUI(Tk):
                 def work():
                     b1["state"] = "disabled"
                     b1["text"] = "Computing"
-                    dataloader = torch.utils.data.DataLoader(MyDataset(dataset), batch_size=512, shuffle=False)
+                    dataloader = torch.utils.data.DataLoader(IndexedDataset(dataset), batch_size=512, shuffle=False)
                     evaluator = Evaluator(self._network, dataloader)
                     evaluator.add_statistic(NumIterationsStat())
                     stat = ErrorFinder(self._network)
