@@ -18,3 +18,7 @@ python run.py --dataset='MNIST' --architecture='1h' --method='centered' --verbos
 ``` bash
 tensorboard --logdir=runs/MNIST/1h/
 ```
+* Once the model is trained, start the GUI by running the command:
+``` bash
+python run_gui.py --dataset='MNIST' --architecture='1h'
+```
